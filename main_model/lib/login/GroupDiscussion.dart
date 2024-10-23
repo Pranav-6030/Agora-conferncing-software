@@ -82,7 +82,7 @@ class GDinterface extends StatelessWidget {
                           padding: const EdgeInsets.only(left: 250, top: 45),
                           child: ElevatedButton.icon(
                             onPressed: () {
-                              Get.to(VideoCall());
+                              Get.to(VideoCall(channelName: "test",));
                             },
                             
                             label: const Text(
@@ -139,7 +139,7 @@ Future _displayBottomSheet(BuildContext context){
             padding: const EdgeInsets.fromLTRB(10, 50, 0, 0),
             child: ElevatedButton.icon(
               onPressed: (){
-                Get.to(const NewMeeting());
+                Get.to(NewMeeting());
               }, 
               // ignore: prefer_const_constructors
               icon: Icon(Icons.add,color: Colors.white) ,

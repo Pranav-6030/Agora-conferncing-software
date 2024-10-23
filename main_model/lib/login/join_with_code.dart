@@ -53,7 +53,7 @@ class Joinwithcode extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(10,0, 0, 0),
             child: ElevatedButton(
               onPressed: (){
-                Get.to(VideoCall());
+                Get.to(VideoCall(channelName: _controller.text.trim()));
               }, 
               // ignore: sort_child_properties_last, prefer_const_constructors
               child: Text("Join",style: TextStyle(color: Colors.white,),
