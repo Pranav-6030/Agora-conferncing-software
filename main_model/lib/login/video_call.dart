@@ -80,11 +80,9 @@ class _VideoCallState extends State<VideoCall> {
         );
 
         await _client.initialize();
-
-        // Mute the microphone after initializing the Agora client
+        print("Agora client initialized.");
         await _client.engine.muteLocalAudioStream(true);
-
-        print("Agora client initialized and microphone muted.");
+        print("Mic muted");
         setState(() => _loading = false);
       } else {
         print("Failed to fetch token: ${_response.statusCode}");
@@ -121,7 +119,7 @@ class _VideoCallState extends State<VideoCall> {
                   if (tToken.isNotEmpty && _showVideo)
                     AgoraVideoViewer(
                       client: _client,
-                      layoutType: isSingleUser ? Layout.floating : Layout.grid,
+                      layoutType: isSingleUser ? Layout.grid : Layout.floating,
                     ),
                   if (tToken.isNotEmpty)
                     AgoraVideoButtons(client: _client),
