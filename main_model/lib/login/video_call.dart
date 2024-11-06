@@ -83,6 +83,11 @@ class _VideoCallState extends State<VideoCall> {
         print("Agora client initialized.");
         await _client.engine.muteLocalAudioStream(true);
         print("Mic muted");
+        _client.sessionController.value = _client.sessionController.value.copyWith(
+          isLocalUserMuted: true,
+        );
+
+
         setState(() => _loading = false);
       } else {
         print("Failed to fetch token: ${_response.statusCode}");
@@ -107,10 +112,16 @@ class _VideoCallState extends State<VideoCall> {
     });
     print("Like status: $isLiked");
   }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  
+@override
+Widget build(BuildContext context) {
+  return WillPopScope(
+    onWillPop: () async {
+      await _client.engine.leaveChannel();
+      print("User left the video call.");
+      return true; // Returning true allows the back navigation to proceed
+    },
+    child: Scaffold(
       body: SafeArea(
         child: _loading
             ? Center(child: CircularProgressIndicator())
@@ -158,6 +169,7 @@ class _VideoCallState extends State<VideoCall> {
                 ],
               ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
