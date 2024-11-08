@@ -8,7 +8,7 @@ import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 class VideoCall extends StatefulWidget {
   final String channelName;
 
-  VideoCall({Key? key, required this.channelName}) : super(key: key);
+  const VideoCall({Key? key, required this.channelName}) : super(key: key);
 
   @override
   State<VideoCall> createState() => _VideoCallState();
@@ -17,12 +17,15 @@ class VideoCall extends StatefulWidget {
 class _VideoCallState extends State<VideoCall> {
   late AgoraClient _client;
   bool _loading = true;
-  bool _showVideo = true; // Set to true to display immediately
+  bool _showVideo = true;
   String tToken = "";
   int remoteUserCount = 0;
-  bool isSingleUser = true; // Flag for single user layout
+  bool isSingleUser = true;
   bool isHandRaised = false;
   bool isLiked = false;
+  bool hasUnmutePermission = false;
+  int countdown = 0; // Countdown in seconds
+  Timer? countdownTimer;
 
   @override
   void initState() {
@@ -73,7 +76,7 @@ class _VideoCallState extends State<VideoCall> {
               print("User with uid $uid went offline for reason: $reason");
               setState(() {
                 remoteUserCount--;
-                isSingleUser = remoteUserCount == 0; // Set to single user layout if no remote users
+                isSingleUser = remoteUserCount == 0;
               });
             },
           ),
@@ -86,7 +89,6 @@ class _VideoCallState extends State<VideoCall> {
         _client.sessionController.value = _client.sessionController.value.copyWith(
           isLocalUserMuted: true,
         );
-
 
         setState(() => _loading = false);
       } else {
@@ -112,19 +114,92 @@ class _VideoCallState extends State<VideoCall> {
     });
     print("Like status: $isLiked");
   }
-  
-@override
-Widget build(BuildContext context) {
-  return WillPopScope(
-    onWillPop: () async {
-      await _client.engine.leaveChannel();
-      print("User left the video call.");
-      return true; // Returning true allows the back navigation to proceed
-    },
-    child: Scaffold(
+
+  void toggleUnmutePermission() {
+    setState(() {
+      hasUnmutePermission = !hasUnmutePermission;
+    });
+
+    if (hasUnmutePermission) {
+      // Show a message when permission is granted
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: const Text("You have permission")),
+      );
+
+      // Start the countdown at 30 seconds
+      countdown = 30;
+
+      // Start a periodic timer to update countdown every second
+      countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        setState(() {
+          countdown--;
+        });
+
+        if (countdown <= 0) {
+          // When countdown finishes, revoke permission and stop the timer
+          revokePermission();
+          countdownTimer?.cancel();
+        }
+      });
+    } else {
+      // Manually revoke permission and stop the timer
+      revokePermission();
+    }
+
+    print("Unmute permission: $hasUnmutePermission");
+  }
+
+  void revokePermission() {
+    setState(() {
+      hasUnmutePermission = false;
+      countdown = 0; // Reset countdown to hide it
+    });
+
+    // Mute the user if they're currently unmuted
+    if (!_client.sessionController.value.isLocalUserMuted) {
+      _client.sessionController.value = _client.sessionController.value.copyWith(
+        isLocalUserMuted: true,
+      );
+      _client.engine.muteLocalAudioStream(true);
+    }
+
+    // Show "Times up buddy" message when permission is revoked
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Times up buddy")),
+    );
+
+    print("Permission automatically revoked. Mic muted if needed.");
+  }
+
+  void handleMicToggle() {
+    if (!hasUnmutePermission && _client.sessionController.value.isLocalUserMuted == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("You have no permission")),
+      );
+    } else {
+      bool newMuteState = !_client.sessionController.value.isLocalUserMuted;
+      _client.sessionController.value = _client.sessionController.value.copyWith(
+        isLocalUserMuted: newMuteState,
+      );
+      _client.engine.muteLocalAudioStream(newMuteState);
+      setState(() {
+        print("Mic toggled. Muted: $newMuteState");
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    countdownTimer?.cancel(); // Cancel timer if still running
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
       body: SafeArea(
         child: _loading
-            ? Center(child: CircularProgressIndicator())
+            ? const Center(child: CircularProgressIndicator())
             : Stack(
                 children: [
                   if (tToken.isNotEmpty && _showVideo)
@@ -133,8 +208,24 @@ Widget build(BuildContext context) {
                       layoutType: isSingleUser ? Layout.grid : Layout.floating,
                     ),
                   if (tToken.isNotEmpty)
-                    AgoraVideoButtons(client: _client),
-                  // Custom Hand Raise Button
+                    AgoraVideoButtons(
+                      client: _client,
+                      enabledButtons: const [
+                        BuiltInButtons.callEnd,
+                        BuiltInButtons.switchCamera,
+                        BuiltInButtons.toggleCamera,
+                      ],
+                      extraButtons: [
+                        FloatingActionButton(
+                          onPressed: handleMicToggle,
+                          child: Icon(
+                            _client.sessionController.value.isLocalUserMuted
+                                ? Icons.mic_off
+                                : Icons.mic,
+                          ),
+                        ),
+                      ],
+                    ),
                   Positioned(
                     bottom: 100,
                     right: 15,
@@ -150,7 +241,6 @@ Widget build(BuildContext context) {
                       ),
                     ),
                   ),
-                  // Custom Like Button
                   Positioned(
                     bottom: 100,
                     left: 15,
@@ -166,10 +256,31 @@ Widget build(BuildContext context) {
                       ),
                     ),
                   ),
+                  Positioned(
+                    bottom: 300,
+                    left: 15,
+                    child: FloatingActionButton.small(
+                      onPressed: toggleUnmutePermission,
+                      backgroundColor: Colors.blue,
+                      child: Icon(
+                        Icons.perm_camera_mic,
+                        color: hasUnmutePermission ? Colors.yellow : Colors.white,
+                      ),
+                    ),
+                  ),
+                  // Display countdown if permission is active
+                  if (hasUnmutePermission)
+                    Positioned(
+                      bottom: 350,
+                      left: 20,
+                      child: Text(
+                        "Time left: $countdown s",
+                        style: const TextStyle(fontSize: 18, color: Colors.red),
+                      ),
+                    ),
                 ],
               ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
