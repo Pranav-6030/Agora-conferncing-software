@@ -82,7 +82,7 @@ class GDinterface extends StatelessWidget {
                           padding: const EdgeInsets.only(left: 250, top: 45),
                           child: ElevatedButton.icon(
                             onPressed: () {
-                              Get.to(VideoCall(channelName: "test",));
+                              Get.to(VideoCall(channelName: "test",CountTimer: 40));//give value from database to 30 
                             },
                             
                             label: const Text(

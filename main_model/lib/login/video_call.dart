@@ -7,8 +7,9 @@ import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 
 class VideoCall extends StatefulWidget {
   final String channelName;
+  final int? CountTimer;
 
-  const VideoCall({Key? key, required this.channelName}) : super(key: key);
+  const VideoCall({Key? key, required this.channelName, this.CountTimer = 30}) : super(key: key);
 
   @override
   State<VideoCall> createState() => _VideoCallState();
@@ -35,7 +36,7 @@ class _VideoCallState extends State<VideoCall> {
 
   Future<void> getToken() async {
     String link =
-        "https://2b220ff3-a521-42cb-84c7-1077e3490399-00-30xo35cwxoeoi.pike.replit.dev/access_token?channelName=${widget.channelName}";
+        "https://0fd0b867-eaa0-40d2-aff9-d933e73b5bd2-00-1fpe7al99i7ye.pike.replit.dev/access_token?channelName=${widget.channelName}";
 
     try {
       Response _response = await get(Uri.parse(link));
@@ -123,11 +124,11 @@ class _VideoCallState extends State<VideoCall> {
     if (hasUnmutePermission) {
       // Show a message when permission is granted
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: const Text("You have permission")),
+        const SnackBar(content: Text("You have permission")),
       );
 
       // Start the countdown at 30 seconds
-      countdown = 30;
+      countdown = widget.CountTimer ?? 30;
 
       // Start a periodic timer to update countdown every second
       countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -202,11 +203,38 @@ class _VideoCallState extends State<VideoCall> {
             ? const Center(child: CircularProgressIndicator())
             : Stack(
                 children: [
-                  if (tToken.isNotEmpty && _showVideo)
-                    AgoraVideoViewer(
-                      client: _client,
-                      layoutType: isSingleUser ? Layout.grid : Layout.floating,
-                    ),
+                                    if (tToken.isNotEmpty && _showVideo)
+                    remoteUserCount == 1
+                        ? AgoraVideoViewer(
+                            client: _client,
+                            layoutType: Layout.floating, // Single user with floating layout
+                          )
+                        : remoteUserCount > 4
+                            ? SingleChildScrollView(
+                                child: GridView.builder(
+                                  shrinkWrap: true,
+                                  physics: NeverScrollableScrollPhysics(),
+                                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2, // You can change the number of columns
+                                    crossAxisSpacing: 10,
+                                    mainAxisSpacing: 10,
+                                  ),
+                                  itemCount: remoteUserCount + 1, // including local user
+                                  itemBuilder: (context, index) {
+                                    return Container(
+                                      padding: EdgeInsets.all(8),
+                                      child: AgoraVideoViewer(
+                                        client: _client,
+                                        layoutType: Layout.grid,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              )
+                            : AgoraVideoViewer(
+                                client: _client,
+                                layoutType: Layout.grid, // Default grid layout for 2-4 users
+                              ),
                   if (tToken.isNotEmpty)
                     AgoraVideoButtons(
                       client: _client,
@@ -216,12 +244,19 @@ class _VideoCallState extends State<VideoCall> {
                         BuiltInButtons.toggleCamera,
                       ],
                       extraButtons: [
-                        FloatingActionButton(
-                          onPressed: handleMicToggle,
-                          child: Icon(
-                            _client.sessionController.value.isLocalUserMuted
-                                ? Icons.mic_off
-                                : Icons.mic,
+                        SizedBox(
+                          height: 45,
+                          width: 45,
+                          child: FloatingActionButton(
+                            onPressed: handleMicToggle,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(100)
+                            ),
+                            child: Icon(
+                              _client.sessionController.value.isLocalUserMuted
+                                  ? Icons.mic_off
+                                  : Icons.mic,
+                            ),
                           ),
                         ),
                       ],
