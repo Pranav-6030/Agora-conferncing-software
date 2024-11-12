@@ -111,7 +111,7 @@ class _NewMeetingState extends State<NewMeeting> {
               padding: const EdgeInsets.fromLTRB(10, 0, 0, 0),
               child: OutlinedButton.icon(
                 onPressed: () {
-                  Get.to(VideoCall(channelName: _meetingCode.trim(),CountTimer: int.tryParse(_controller.text.trim()) ));
+                  Get.to(VideoCall(channelName: _meetingCode.trim(),countTimer: int.tryParse(_controller.text.trim()) ));
                 },
                 icon: const Icon(
                   Icons.video_call,

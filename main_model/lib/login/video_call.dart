@@ -7,9 +7,9 @@ import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 
 class VideoCall extends StatefulWidget {
   final String channelName;
-  final int? CountTimer;
+  final int? countTimer;
 
-  const VideoCall({Key? key, required this.channelName, this.CountTimer = 30}) : super(key: key);
+  const VideoCall({Key? key, required this.channelName, this.countTimer = 30}) : super(key: key);
 
   @override
   State<VideoCall> createState() => _VideoCallState();
