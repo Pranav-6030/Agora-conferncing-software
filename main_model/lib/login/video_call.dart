@@ -128,7 +128,7 @@ class _VideoCallState extends State<VideoCall> {
       );
 
       // Start the countdown at 30 seconds
-      countdown = widget.CountTimer ?? 30;
+      countdown = widget.countTimer ?? 30;
 
       // Start a periodic timer to update countdown every second
       countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
